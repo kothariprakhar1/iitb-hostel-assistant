@@ -1,5 +1,5 @@
 IIT Bombay Hostel and Campus Life Assistant
-This is a RAG-powered assistant designed to answer questions about IIT Bombay hostel and campus life using real institute documents. It is built to refuse answers ("I don't know") if the retrieved context does not support a confident response.
+This is a RAG-powered assistant designed to answer questions about IIT Bombay hostel and campus life using real instetute documents. It is built to refuse answers ("I don't know") if the retrieved context does not support a confident response.
 
 Scope Covered
 Hostel allotment and room rules
@@ -8,7 +8,7 @@ Mess menu, mess rules, and fees
 
 Hostel facilities like gym, common room, and laundry
 
-Campus facilities including SAC, hospital, library, and gymkhana grounds
+Campus facilities including SAC, hospital, library, and gymkana grounds
 
 Guest, curfew, and visitor policies
 
@@ -36,7 +36,7 @@ Set your Gemini API key. You can get one for free at the Google AI Studio websit
 
 Bash
 setx GEMINI_API_KEY "your_api_key_here"
-Note: If you are on Windows, restart your terminal after running the command above.
+
 
 Now, add your source documents in PDF, TXT, HTML, or MD format into the data folder. You need at least 5 real documents. The setup already includes 6 documents covering hostel allotment, mess rules, hostel facilities, campus facilities, and guest or curfew policies.
 
@@ -56,7 +56,7 @@ python rag_chain.py "What is the curfew time in the hostel?"
 The web UI is not built yet. This repository currently covers the retrieval and LLM pipeline. You can wrap the answer question function in a Streamlit or Gradio app if you want to build the final UI later.
 
 How the Guardrail Works
-Before the system calls the LLM, it checks the distance of the closest retrieved chunk against the maximum distance threshold set in the config file. If the retrieved content is not close enough to the question, the assistant returns "I don't know" right away. This saves an LLM call.
+Before the system calls the LLM, it checks the distance of the closest retrieved chunk against the maximum distance threshold set in the config file. If the retrieved content is not close enough to the question, the assistant returns "I don't know" right avay. This saves an LLM call.
 
 As a second layer of safety, the system prompt also tells the model itself to say "I don't know" if the provided text does not have the answer.
 
@@ -65,6 +65,6 @@ You can adjust the settings in the config file to change how the system behaves:
 
 CHUNK_SIZE_WORDS and CHUNK_OVERLAP_WORDS control how big or small the text pieces are.
 
-TOP_K controls how many text pieces the system pulls for each question.
+TOP_K controls how many text pieces the system pulls for each qustion.
 
 MAX_DISTANCE_THRESHOLD controls how strict the "I don't know" guardrail is. You can lower this number if the assistant answers things it should not. You can raise it if the assistant says "I don't know" too often for questions it should actually answer.
