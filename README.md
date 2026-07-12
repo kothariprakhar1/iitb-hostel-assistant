@@ -15,13 +15,21 @@ Guest, curfew, and visitor policies
 Project Structure
 Plaintext
 iitb-hostel-assistant/
+
 ├── config.py
+
 ├── ingest.py
+
 ├── build_index.py
+
 ├── rag_chain.py
+
 ├── data/
+
 ├── requirements.txt
+
 └── README.md
+
 Setup
 First, create and activate a virtual environment:
 
