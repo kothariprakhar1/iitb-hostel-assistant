@@ -1,42 +1,51 @@
-# Write-up: IITB Hostel & Campus Life Assistant
+Chosen Scope and Why
+I picked the Hostel and Campus Life Assistant because this is where new students get confused the most. It is usually a bigger headache than academics or clubs. Most questions about hostel rules, food timings, room allotment, and campus facilities come up before a student even gets to campus. At that time, they do not have a senior or mentor around to ask. Using a RAG system with real hostel documents solves this issue. It gives new students a reliable way to get correct information anytime instead of just guessing or waiting to find someone to ask.
 
-## 1. Chosen Scope and Why
+Data Sources Used
+The assistant uses 5 real files that cover the main things a new student would ask about:
 
-I chose the **Hostel & Campus Life Assistant** scope over the alternatives (Academic Assistant, Council/Club Assistant, General Insti Assistant) because this is the area where incoming students face the most confusion — more so than academics or clubs. Questions about hostel rules, mess timings, allotment, and campus facilities typically come up *before* a student even arrives on campus, at a time when there's no senior or mentor readily available to ask. A RAG-based assistant grounded in real hostel documents directly addresses this gap by giving new students an always-available, accurate source of information instead of having to guess or wait to ask someone.
+hostel16_rules.txt — Basic rules for Hostel 16 like visiting hours and guest policies.
 
-## 2. Data Sources Used
+hostel16_facilities.txt — Services and facilities inside Hostel 16.
 
-The assistant is built on 5 real source documents covering the core areas a new student is most likely to have questions about:
+hostel_allotment_instructions.txt — The steps and process for getting a hostel room.
 
-1. **`hostel16_rules.txt`** — General hostel rules for Hostel 16 (visiting hours, guest policy, etc.)
-2. **`hostel16_facilities.txt`** — Facilities available within Hostel 16
-3. **`hostel_allotment_instructions.txt`** — Instructions and process for hostel room allotment
-4. **`hostel_mess_rules.txt`** — Mess timings, rebate policy, guest dining, utensil rules, and mess behavior guidelines (sourced from IITB Hostel 10's official mess rules page)
-5. **`hostel_discipline_rules.txt`** — General hostel discipline and conduct rules, including behavior expectations, smoking/drinking policy, pet policy, hostel accommodation overview, and DoSA administrative structure (sourced from IITB Hostel 10 and Gymkhana housing pages)
+hostel_mess_rules.txt — Mess timings, how to get refunds for missed meals, guest charges, rules for utensils, and behavior guidelines. This comes from the official IITB Hostel 10 mess page.
 
-These five documents were chosen because, together, they cover most of the *general* doubts a new student has about hostel life — rules, facilities, how allotment works, mess logistics, and discipline expectations — rather than being narrowly focused on just one hostel or one topic.
+hostel_discipline_rules.txt — General discipline and behavior rules. It covers smoking and drinking policies, pet rules, housing overviews, and the DoSA structure. This comes from the IITB Hostel 10 and Gymkhana housing pages.
 
-## 3. Chunking Strategy and Why
+These five files cover most general doubts about hostel life. They focus on overall rules, facilities, room allotment, mess setup, and behavior, instead of looking at just one tiny topic.
 
-The system uses a **fixed-size sliding-window chunking strategy**, implemented in `ingest.py`:
+Chunking Strategy and Why
+The system splits text using a fixed size with a sliding window inside the ingest file:
 
-- Each source document is first cleaned (excess whitespace and blank lines collapsed) and then split into individual words.
-- A window of **350 words** (`CHUNK_SIZE_WORDS`) is used per chunk.
-- Successive chunks **overlap by 50 words** (`CHUNK_OVERLAP_WORDS`), meaning each new chunk starts 50 words before the previous chunk ended.
-- This repeats across the document until the entire text is covered.
+The system cleans each document by removing extra empty lines and spaces, then breaks it down into words.
 
-This approach was chosen for a few reasons:
-- **Format-agnostic**: since the source documents come from a mix of formats (plain text, PDFs, scraped HTML), a word-count-based chunker doesn't depend on document structure like headings or paragraphs, which can be inconsistent or missing after text extraction.
-- **Predictable chunk size**: fixed-size chunks keep embedding and retrieval behavior consistent — no single chunk is too large (which could dilute relevance in the vector search) or too small (which could cut off necessary context).
-- **Overlap prevents context loss**: without overlap, a rule and its explanation could be split across two separate chunks with neither containing the full picture. The 50-word overlap acts as a buffer so information near chunk boundaries isn't lost during retrieval.
+Each chunk is exactly 350 words long.
 
-Retrieval uses cosine similarity (via ChromaDB) with `TOP_K = 4` chunks retrieved per query, and a distance threshold (`MAX_DISTANCE_THRESHOLD = 1.0`) acts as a guardrail — if even the closest retrieved chunk is too dissimilar to the query, the system skips the LLM call entirely and returns "I don't know," avoiding both hallucination and unnecessary API calls.
+Every new chunk overlaps with the previous one by 50 words. This means each chunk begins 50 words before the last one ends.
 
-## 4. Known Limitations and Future Improvements
+The syystem keeps doing this until it covers the whole document.
 
-- **Incomplete hostel-specific coverage**: The assistant does not cover rules specific to every individual hostel at IITB — some documents are hostel-specific (e.g. Hostel 16, Hostel 10) rather than representing all 17 hostels, so answers for hostels not directly covered may be incomplete or generic.
-- **No academic coverage**: Since the chosen scope is strictly Hostel & Campus Life, the assistant cannot answer questions about academics — course registration, grading policy, or exam rules — even though these are common student questions. This was an intentional scope decision to keep the project focused within the given timeframe.
-- **Single-turn only**: The assistant currently answers each question independently and does not support multi-turn conversational memory (e.g. follow-up questions that depend on previous context).
-- **Static document set**: Source documents are manually curated `.txt` files rather than being live-scraped or auto-updated, so the assistant's knowledge is only as current as the last time the `data/` folder was updated and the index rebuilt.
+This method helps for a few reasons:
 
-With more time, I would expand the data sources to cover all 17 hostels individually, add an academic-info module (or combine scopes into a general assistant), and add multi-turn memory so students can ask natural follow-up questions.
+Works with any file type: Since the files are a mix of text, PDFs, and web pages, counting words means we do not have to rely on headings or paragraphs. Those can easily break or disappear when you extract text.
+
+Preedictable sizes: Keeping the chunks the same size makes searching the database reliable. A chunk will never be too big, which ruins the search match, or too small, which cuts off useful info.
+
+No lost context: If you do not overlap the chunks, a rule might end up in one chunk and its explnation in another. The 50 word overlap acts as a safety buffer so information at the edges does not get separated.
+
+When you ask a question, the system finds the top 4 chunks using cosine similarity in ChromaDB. There is a maximum distance threshold set to 1.0 as a gurdrail. If the best mat ch in the database is still too different from your question, the system stops. It skips the LLM completely and just tells you "I don't know." This stops the AI from making things up and saves API costs.
+
+Limitations and Future Improvements
+Missing details for other hostels: The assistant does not have specific rules for every single hostel at IITB. Some files only talk about Hostel 16 or Hostel 10, so answers for other hostels might be too generic.
+
+No study or course info: Since this only covers hostel and campus life, the assistant cannot answer anything about academics, registering for courses, grading, or exams. I chose to leave this out on purpose to keep the project focused.
+
+
+
+If I had more time, I would add files for all 17 hostels, add a section for acedemic info, and give the AI a memory so students can have a normal back-and-forth conversation.
+
+No follow-up questions: The assistant only answers one question at a time. It does not remember the conversation, so you cannot ask follow-up questions that rely on what you just talked about.
+
+Manual updates only: The files are just text documents inside a folder. They do not update automatically from the website. The assistant only knows what is in the folder from the last time the index was built.
